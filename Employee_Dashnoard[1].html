@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة إدارة وتقييم الموظفين</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        slateBg: '#1e293b',
+                        slateDark: '#0f172a',
+                        slateCard: '#334155',
+                        slateHover: '#475569',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Hover animations and transitions */
+        .hover-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hover-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+            background-color: #3b4d66;
+        }
+
+        .btn-hover {
+            transition: all 0.2s ease;
+        }
+        .btn-hover:hover {
+            transform: scale(1.03);
+            filter: brightness(1.1);
+        }
+        .btn-hover:active {
+            transform: scale(0.98);
+        }
+
+        .table-row-hover {
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .table-row-hover:hover {
+            background-color: #334155 !important;
+        }
+
+        .input-focus {
+            transition: all 0.3s ease;
+        }
+        .input-focus:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            transform: scale(1.005);
+        }
+
+        /* Glassmorphism Effect */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slateDark text-slate-100">
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 left-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <i id="toastIcon" class="fas fa-check-circle text-lg"></i>
+        <span id="toastMsg" class="font-medium text-sm">تمت العملية بنجاح!</span>
+    </div>
+
+    <!-- Application Root -->
+    <div id="app" class="flex-grow flex flex-col">
+
+        <!-- Header / Navbar -->
+        <header class="glass-panel sticky top-0 z-40 border-b border-slate-700/50 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-id-badge text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-wide text-white">نظام إدارة وتقييم الموظفين</h1>
+                        <p class="text-xs text-slate-400">Next.js Enterprise Architecture Simulation</p>
+                    </div>
+                </div>
+
+                <!-- Account Indicator / Switcher -->
+                <div id="userInfo" class="flex items-center gap-4">
+                    <!-- Dynamic user info rendered by JS -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
+
+            <!-- LOGIN VIEW -->
+            <section id="loginSection" class="my-auto max-w-md w-full mx-auto">
+                <div class="glass-panel p-8 rounded-2xl shadow-2xl border border-slate-700">
+                    <div class="text-center mb-8">
+                        <div class="inline-flex p-4 rounded-full bg-blue-500/10 text-blue-400 mb-3">
+                            <i class="fas fa-shield-alt text-3xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">تسجيل الدخول للنظام</h2>
+                        <p class="text-slate-400 text-sm mt-1">اختر الحساب وادخل كلمة المرور (1234)</p>
+                    </div>
+
+                    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">نوع الحساب</label>
+                            <select id="accountType" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 input-focus">
+                                <option value="admin">👨‍💼 حساب إضافة الموظفين (الموارد البشرية - HR Admin)</option>
+                                <option value="evaluator">📊 حساب تقييم الموظفين (المدير - Manager Evaluator)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">كلمة المرور</label>
+                            <div class="relative">
+                                <input type="password" id="passwordInput" placeholder="ادخل كلمة المرور (1234)" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 pl-10 input-focus">
+                                <i class="fas fa-lock absolute left-3 top-3.5 text-slate-500"></i>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 btn-hover flex items-center justify-center gap-2">
+                            <span>تسجيل الدخول</span>
+                            <i class="fas fa-arrow-left text-sm"></i>
+                        </button>
+                    </form>
+
+                    <div class="mt-6 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 space-y-1">
+                        <p class="font-semibold text-slate-300"><i class="fas fa-info-circle text-blue-400 ml-1"></i> معلومات الدخول للمعاينة:</p>
+                        <p>🔑 كلمة سر الحسابين هي: <code class="bg-slate-800 px-2 py-0.5 rounded text-blue-300 font-mono">1234</code></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DASHBOARD VIEW (Hidden until login) -->
+            <div id="dashboardSection" class="hidden space-y-6">
+
+                <!-- Header Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <div class="glass-panel p-5 rounded-2xl hover-card border-l-4 border-blue-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">إجمالي الموظفين</p>
+                            <h3 id="statTotal" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl">
+                            <i class="fas fa-users text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl hover-card border-l-4 border-emerald-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">الموظفين المقيّمين</p>
+                            <h3 id="statEvaluated" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+                            <i class="fas fa-clipboard-check text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl hover-card border-l-4 border-amber-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">بانتظار التقييم</p>
+                            <h3 id="statPending" class="text-3xl font-extrabold text-white mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl">
+                            <i class="fas fa-hourglass-half text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl hover-card border-l-4 border-purple-500 flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">متوسط التقييم العام</p>
+                            <h3 id="statAvgScore" class="text-3xl font-extrabold text-white mt-1">0 / 100</h3>
+                        </div>
+                        <div class="p-3 bg-purple-500/10 text-purple-400 rounded-xl">
+                            <i class="fas fa-star text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN ACCOUNT VIEW: Add Employee Form -->
+                <div id="adminPanel" class="glass-panel p-6 rounded-2xl border border-slate-700">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
+                        <div class="p-3 bg-blue-600/20 text-blue-400 rounded-xl">
+                            <i class="fas fa-user-plus text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">إضافة موظف جديد (صلاحيات HR Admin)</h2>
+                            <p class="text-xs text-slate-400">قم بملء البيانات الإجبارية لإضافة الموظف لسجل الشركة</p>
+                        </div>
+                    </div>
+
+                    <form id="addEmployeeForm" onsubmit="handleAddEmployee(event)" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">اسم الموظف الثلاثي *</label>
+                            <input type="text" id="empName" required placeholder="مثال: أحمد محمود العلي" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">الرقم الوظيفي (ID) *</label>
+                            <input type="text" id="empId" required placeholder="مثال: EMP-2026-09" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">المسمى الوظيفي *</label>
+                            <input type="text" id="empRole" required placeholder="مثال: مطور ويب / مهندس بيانات" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">القسم / الإدارة *</label>
+                            <select id="empDept" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                                <option value="">اختر القسم...</option>
+                                <option value="تطوير البرمجيات">تطوير البرمجيات</option>
+                                <option value="التسويق الرقمي">التسويق الرقمي</option>
+                                <option value="الموارد البشرية">الموارد البشرية</option>
+                                <option value="المبالغ والمالية">المبالغ والمالية</option>
+                                <option value="دعم العملاء">دعم العملاء</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">تاريخ الانضمام *</label>
+                            <input type="date" id="empDate" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                        </div>
+
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 btn-hover flex items-center justify-center gap-2 text-sm">
+                                <i class="fas fa-plus"></i>
+                                <span>حفظ وإضافة الموظف</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- EVALUATOR ACCOUNT INFO BANNER -->
+                <div id="evaluatorPanel" class="hidden glass-panel p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-clipboard-user text-amber-400 text-2xl"></i>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">وضع المقيم والمدير (Manager Evaluator)</h3>
+                            <p class="text-xs text-slate-400">اختر موظفاً من القائمة أدناه للبدء بتصنيف مستواه وإضافة التقييم والتوصيات</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EMPLOYEE LIST TABLE -->
+                <div class="glass-panel rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
+                    <div class="p-5 border-b border-slate-700 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-list text-blue-400"></i>
+                            <span>قائمة الموظفين المسجلين</span>
+                        </h2>
+                        
+                        <!-- Search & Filter -->
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <input type="text" id="searchInput" oninput="renderTable()" placeholder="بحث بالاسم أو الرقم الوظيفي..." class="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl pr-9 pl-4 py-2 w-64 input-focus">
+                                <i class="fas fa-search absolute right-3 top-2.5 text-slate-500 text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900/80 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+                                    <th class="py-4 px-6">الموظف</th>
+                                    <th class="py-4 px-6">المسمى الوظيفي والقسم</th>
+                                    <th class="py-4 px-6">تاريخ الانضمام</th>
+                                    <th class="py-4 px-6">حالة التقييم</th>
+                                    <th class="py-4 px-6">الدرجة النهائية</th>
+                                    <th class="py-4 px-6 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeeTableBody" class="divide-y divide-slate-800 text-sm">
+                                <!-- Dynamic Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Dynamic Evaluation Modal -->
+        <div id="evalModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+            <div class="glass-panel max-w-lg w-full rounded-2xl border border-slate-700 p-6 shadow-2xl transform transition-all duration-300 scale-95 opacity-0" id="evalModalCard">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                            <i class="fas fa-star text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-base">تقييم أداء الموظف</h3>
+                            <p id="evalModalEmpName" class="text-xs text-slate-400">اسم الموظف</p>
+                        </div>
+                    </div>
+                    <button onclick="closeEvalModal()" class="text-slate-400 hover:text-white text-lg p-2"><i class="fas fa-times"></i></button>
+                </div>
+
+                <form id="evalForm" onsubmit="handleSaveEvaluation(event)" class="space-y-4">
+                    <input type="hidden" id="evalEmpId">
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">الدرجة الممنوحة (من 100) *</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" id="evalScoreRange" min="0" max="100" value="85" oninput="document.getElementById('evalScoreNum').value = this.value" class="w-full accent-blue-500">
+                            <input type="number" id="evalScoreNum" min="0" max="100" value="85" oninput="document.getElementById('evalScoreRange').value = this.value" class="w-20 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-center text-sm text-white font-bold input-focus">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">تصنيف الأداء العام *</label>
+                        <select id="evalRating" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus">
+                            <option value="ممتاز 🌟">ممتاز 🌟 (90 - 100)</option>
+                            <option value="جيد جداً 👍">جيد جداً 👍 (75 - 89)</option>
+                            <option value="متوسط 😐">متوسط 😐 (60 - 74)</option>
+                            <option value="يحتاج تحسين ⚠️">يحتاج تحسين ⚠️ (أقل من 60)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">ملاحظات والتوصيات الوظيفية</label>
+                        <textarea id="evalNotes" rows="3" placeholder="اكتب تقريراً أو ملاحظات حول نقاط القوة والتطوير..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 input-focus"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 pt-3">
+                        <button type="button" onclick="closeEvalModal()" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl btn-hover text-sm">إلغاء</button>
+                        <button type="submit" class="w-1/2 bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-amber-600/20 btn-hover text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i>
+                            <span>اعتماد التقييم</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- FOOTER & VS CODE STRUCTURE ARCHITECTURE GUIDE -->
+        <footer class="bg-slateDark border-t border-slate-800 mt-auto py-8 px-6 text-slate-400">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h4 class="font-bold text-slate-200">ABD DASHBOARD !!</h4>
+                        <p class="text-xs text-slate-500">تم البناء بدقة لتوافق البيئات المتقدمة والخلفيات الرمادية المتناسقة</p>
+                    </div>
+                    
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // State Management
+        let currentUser = null; // { type: 'admin' | 'evaluator' }
+        
+        // Initial empty array - NO random names generated automatically
+        let employees = [];
+
+        // Application Initialization
+        window.onload = function() {
+            // Load employees from LocalStorage if available
+            const saved = localStorage.getItem('app_employees_data');
+            if (saved) {
+                try {
+                    employees = JSON.parse(saved);
+                } catch(e) {
+                    employees = [];
+                }
+            }
+            updateUI();
+        };
+
+        function saveToStorage() {
+            localStorage.setItem('app_employees_data', JSON.stringify(employees));
+        }
+
+        // Handle Login Action
+        function handleLogin(e) {
+            e.preventDefault();
+            const accountType = document.getElementById('accountType').value;
+            const password = document.getElementById('passwordInput').value;
+
+            if (password !== '1234') {
+                showToast('كلمة المرور غير صحيحة! جرب 1234', 'error');
+                return;
+            }
+
+            currentUser = {
+                type: accountType,
+                name: accountType === 'admin' ? 'مسؤول الموارد البشرية (HR)' : 'المدير المقيم (Evaluator)'
+            };
+
+            showToast(`تم تسجيل الدخول بنجاح بحساب ${currentUser.name}`);
+            document.getElementById('passwordInput').value = '';
+            updateUI();
+        }
+
+        // Handle Logout
+        function handleLogout() {
+            currentUser = null;
+            showToast('تم تسجيل الخروج بنجاح');
+            updateUI();
+        }
+
+        // Add Employee Action (Account 1 - Admin HR)
+        function handleAddEmployee(e) {
+            e.preventDefault();
+            
+            if (currentUser?.type !== 'admin') {
+                showToast('عفواً، حساب الأدمن هو فقط من يستطيع إضافة موظفين', 'error');
+                return;
+            }
+
+            const name = document.getElementById('empName').value.trim();
+            const empId = document.getElementById('empId').value.trim();
+            const role = document.getElementById('empRole').value.trim();
+            const dept = document.getElementById('empDept').value;
+            const date = document.getElementById('empDate').value;
+
+            // Check duplicate ID
+            if (employees.some(emp => emp.empId === empId)) {
+                showToast('الرقم الوظيفي موجود سابقاً، يرجى إدخال رقم فريد', 'error');
+                return;
+            }
+
+            const newEmployee = {
+                id: Date.now().toString(),
+                empId,
+                name,
+                role,
+                dept,
+                date,
+                score: null,
+                rating: null,
+                notes: ''
+            };
+
+            employees.push(newEmployee);
+            saveToStorage();
+            
+            // Reset form
+            document.getElementById('addEmployeeForm').reset();
+            showToast(`تمت إضافة الموظف "${name}" بنجاح إلى السجلات`);
+            renderTable();
+            updateStats();
+        }
+
+        // Open Evaluation Modal (Account 2 - Evaluator)
+        function openEvalModal(id) {
+            if (currentUser?.type !== 'evaluator') {
+                showToast('يجب تسجيل الدخول بحساب المقيم لتقييم الموظف', 'error');
+                return;
+            }
+
+            const emp = employees.find(e => e.id === id);
+            if (!emp) return;
+
+            document.getElementById('evalEmpId').value = emp.id;
+            document.getElementById('evalModalEmpName').innerText = `${emp.name} - (${emp.role})`;
+            document.getElementById('evalScoreRange').value = emp.score || 85;
+            document.getElementById('evalScoreNum').value = emp.score || 85;
+            document.getElementById('evalRating').value = emp.rating || 'ممتاز 🌟';
+            document.getElementById('evalNotes').value = emp.notes || '';
+
+            const modal = document.getElementById('evalModal');
+            const card = document.getElementById('evalModalCard');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // Close Evaluation Modal
+        function closeEvalModal() {
+            const modal = document.getElementById('evalModal');
+            const card = document.getElementById('evalModalCard');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        // Save Evaluation Result
+        function handleSaveEvaluation(e) {
+            e.preventDefault();
+            const id = document.getElementById('evalEmpId').value;
+            const score = parseInt(document.getElementById('evalScoreNum').value);
+            const rating = document.getElementById('evalRating').value;
+            const notes = document.getElementById('evalNotes').value.trim();
+
+            const empIndex = employees.findIndex(e => e.id === id);
+            if (empIndex !== -1) {
+                employees[empIndex].score = score;
+                employees[empIndex].rating = rating;
+                employees[empIndex].notes = notes;
+
+                saveToStorage();
+                closeEvalModal();
+                showToast(`تم اعتماد تقييم الموظف "${employees[empIndex].name}" بنجاح`);
+                renderTable();
+                updateStats();
+            }
+        }
+
+        // Delete Employee (Admin only)
+        function deleteEmployee(id) {
+            if (currentUser?.type !== 'admin') {
+                showToast('فقط حساب الأدمن مخول بحذف الموظفين', 'error');
+                return;
+            }
+
+            employees = employees.filter(e => e.id !== id);
+            saveToStorage();
+            showToast('تم حذف الموظف من السجل');
+            renderTable();
+            updateStats();
+        }
+
+        // Update Interface View based on state
+        function updateUI() {
+            const loginSection = document.getElementById('loginSection');
+            const dashboardSection = document.getElementById('dashboardSection');
+            const userInfo = document.getElementById('userInfo');
+            const adminPanel = document.getElementById('adminPanel');
+            const evaluatorPanel = document.getElementById('evaluatorPanel');
+
+            if (!currentUser) {
+                loginSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+                userInfo.innerHTML = '';
+            } else {
+                loginSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+
+                // Header User badge
+                const badgeColor = currentUser.type === 'admin' ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' : 'bg-amber-600/20 text-amber-400 border-amber-500/30';
+                const roleIcon = currentUser.type === 'admin' ? 'fa-user-gear' : 'fa-clipboard-check';
+                
+                userInfo.innerHTML = `
+                    <div class="flex items-center gap-3 px-3 py-1.5 rounded-xl border ${badgeColor}">
+                        <i class="fas ${roleIcon}"></i>
+                        <span class="text-xs font-semibold">${currentUser.name}</span>
+                    </div>
+                    <button onclick="handleLogout()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-700 btn-hover">
+                        <i class="fas fa-sign-out-alt ml-1"></i> خروج
+                    </button>
+                `;
+
+                // Show panels conditionally
+                if (currentUser.type === 'admin') {
+                    adminPanel.classList.remove('hidden');
+                    evaluatorPanel.classList.add('hidden');
+                } else {
+                    adminPanel.classList.add('hidden');
+                    evaluatorPanel.classList.remove('hidden');
+                }
+
+                renderTable();
+                updateStats();
+            }
+        }
+
+        // Render Table Rows
+        function renderTable() {
+            const tbody = document.getElementById('employeeTableBody');
+            const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
+
+            const filtered = employees.filter(e => 
+                e.name.toLowerCase().includes(search) || 
+                e.empId.toLowerCase().includes(search) ||
+                e.dept.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-12 text-slate-500">
+                            <i class="fas fa-folder-open text-4xl mb-3 block"></i>
+                            <p class="text-sm">لا يوجد موظفين حالياً في القائمة</p>
+                            <p class="text-xs text-slate-600 mt-1">${currentUser?.type === 'admin' ? 'قم بإضافة موظفين جدد من خلال النموذج أعلاه' : 'يرجى انتظار قيام HR بإضافة موظفين جدد'}</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(emp => {
+                const isEvaluated = emp.score !== null;
+                const scoreBadge = isEvaluated 
+                    ? `<span class="px-2.5 py-1 rounded-lg text-xs font-bold ${emp.score >= 80 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : emp.score >= 60 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">${emp.score} / 100</span>`
+                    : `<span class="text-slate-500 text-xs">غير مقيم</span>`;
+
+                const statusBadge = isEvaluated
+                    ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><i class="fas fa-check-circle text-xs"></i> ${emp.rating}</span>`
+                    : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"><i class="fas fa-clock text-xs"></i> بانتظار التقييم</span>`;
+
+                let actionBtns = '';
+                if (currentUser?.type === 'evaluator') {
+                    actionBtns = `
+                        <button onclick="openEvalModal('${emp.id}')" class="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold btn-hover flex items-center gap-1 mx-auto">
+                            <i class="fas fa-star"></i>
+                            <span>${isEvaluated ? 'تعديل التقييم' : 'تقييم الآن'}</span>
+                        </button>
+                    `;
+                } else if (currentUser?.type === 'admin') {
+                    actionBtns = `
+                        <button onclick="deleteEmployee('${emp.id}')" class="text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 p-2 rounded-xl transition-colors" title="حذف الموظف">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `;
+                }
+
+                return `
+                    <tr class="table-row-hover">
+                        <td class="py-4 px-6 font-semibold text-white">
+                            <div>${emp.name}</div>
+                            <div class="text-xs font-mono text-slate-400 font-normal">${emp.empId}</div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="text-slate-200">${emp.role}</div>
+                            <div class="text-xs text-blue-400">${emp.dept}</div>
+                        </td>
+                        <td class="py-4 px-6 text-slate-400 text-xs">${emp.date}</td>
+                        <td class="py-4 px-6">${statusBadge}</td>
+                        <td class="py-4 px-6">${scoreBadge}</td>
+                        <td class="py-4 px-6 text-center">${actionBtns}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update Statistics Counters
+        function updateStats() {
+            const total = employees.length;
+            const evaluated = employees.filter(e => e.score !== null);
+            const evaluatedCount = evaluated.length;
+            const pendingCount = total - evaluatedCount;
+            
+            const totalScoreSum = evaluated.reduce((sum, e) => sum + (e.score || 0), 0);
+            const avgScore = evaluatedCount > 0 ? Math.round(totalScoreSum / evaluatedCount) : 0;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statEvaluated').innerText = evaluatedCount;
+            document.getElementById('statPending').innerText = pendingCount;
+            document.getElementById('statAvgScore').innerText = `${avgScore} / 100`;
+        }
+
+        // Toggle Visual Guide Folder inside Footer
+        function toggleGuide() {
+            const guide = document.getElementById('codeGuide');
+            guide.classList.toggle('hidden');
+        }
+
+        // Show Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+            
+            if (type === 'error') {
+                toast.classList.remove('bg-emerald-600');
+                toast.classList.add('bg-rose-600');
+                toastIcon.className = 'fas fa-exclamation-circle text-lg';
+            } else {
+                toast.classList.remove('bg-rose-600');
+                toast.classList.add('bg-emerald-600');
+                toastIcon.className = 'fas fa-check-circle text-lg';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
